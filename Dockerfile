@@ -1,14 +1,26 @@
-# GitHub CI 构建测试用最小镜像（自包含，无需额外文件）
+# GitHub CI 构建测试：使用 uv 管理 Python 依赖（自包含，无需额外文件）
 FROM python:3.12-slim
 
-# 避免交互式提示、精简日志
+# 容器内 uv 直接写入系统 Python；copy 链接模式适配容器分层；安装即编译字节码
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    UV_SYSTEM_PYTHON=1 \
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1
 
 WORKDIR /app
 
-# 构建期校验：基础工具链可用
-RUN python --version && pip --version
+# 安装 uv（仅走 PyPI，CI 与本地网络路径统一）
+RUN pip install --no-cache-dir uv && uv --version
 
-# 运行期冒烟验证：CI 中执行 docker run 应打印该行
-CMD ["python", "-c", "print('CI docker build OK')"]
+# 通过 uv 安装依赖（锁定版本，保证 CI 可复现）
+RUN uv pip install --no-cache \
+    requests==2.32.3 \
+    httpx==0.28.1 \
+    pydantic==2.9.2
+
+# 构建期确认依赖清单
+RUN uv pip list
+
+# 运行期冒烟验证：CI 中 docker run 应打印各包版本
+CMD ["python", "-c", "import requests, httpx, pydantic; print('uv deps OK:', requests.__version__, httpx.__version__, pydantic.VERSION)"]
