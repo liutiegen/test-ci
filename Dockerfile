@@ -1,7 +1,7 @@
 # GitHub CI 构建测试：使用 uv 管理 Python 依赖（自包含，无需额外文件）
 # FROM python:3.12-slim
-# FROM docker.1ms.run/library/python:3.12-slim
-FROM registry.aliyuncs.com/library/python:3.11-slim
+FROM docker.1ms.run/library/python:3.12-slim
+# FROM registry.aliyuncs.com/library/python:3.11-slim
 
 # 容器内 uv 直接写入系统 Python；copy 链接模式适配容器分层；安装即编译字节码
 ENV PYTHONDONTWRITEBYTECODE=1 \
