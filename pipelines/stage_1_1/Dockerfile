@@ -6,7 +6,7 @@
 #   docker build -f pipelines/stage_1_1/Dockerfile -t <上述镜像> .
 # 启用镜像源：--build-arg USE_MIRROR=1
 # =============================================================================
-FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+FROM nvcr.io/nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
 
 ARG USE_MIRROR=0
 ARG PIP_INDEX=https://pypi.org/simple
