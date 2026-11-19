@@ -1,0 +1,45 @@
+# =============================================================================
+# Benchmark 配置（lm-evaluation-harness 0.4.14）
+# 任务名均已在本地 lm-evaluation-harness 源码中核实存在。
+# =============================================================================
+
+# 模型接入方式：lm-eval 的 hf 后端（AutoModelForCausalLM，可直接加载 compressed-tensors）
+model_backend: hf
+
+# 任务套件 --------------------------------------------------------------------
+suites:
+  # 快速核心套件：覆盖推理/常识/选择，适合 0.5B 模型快速对比
+  core:
+    - gsm8k            # 5-shot，数学推理，exact_match
+    - arc_challenge    # 25-shot，推理多选，acc / acc_norm
+    - hellaswag        # 10-shot，常识补全，acc / acc_norm
+    - winogrande       # 5-shot，共指消解，acc
+
+  # 完整 Open LLM Leaderboard 套件（含 57 个 mmlu 子任务，较重）
+  openllm:
+    - openllm          # 组：arc_challenge/hellaswag/truthfulqa/mmlu/winogrande/gsm8k
+
+# 默认选用套件（可在命令行 --suite 覆盖）
+default_suite: core
+
+# 推理参数（控制生成成本，保证各方案口径一致）
+generation:
+  batch_size: auto
+  limit: null          # null=全量；冒烟时可设小值（如 100）
+  log_samples: true
+  cache_requests: true
+
+# 困惑度评估（在验证集 ultrachat test_sft 上计算，作为数据集对齐的快速信号）
+perplexity:
+  dataset_split: test_sft
+  max_samples: 1000
+  max_seq_length: 2048
+
+# 选优口径 --------------------------------------------------------------------
+# 主指标：核心套件各任务的归一化综合得分（相对 baseline 的平均保留率）
+selection:
+  primary_metric: suite_retention_ratio   # 相对 baseline 的综合保留率，越高越好
+  tie_breakers:
+    - perplexity            # 困惑度越低越好
+    - model_size_bytes      # 模型体积越小越好
+  retention_floor: 0.98     # 综合保留率低于 0.98 视为不达标

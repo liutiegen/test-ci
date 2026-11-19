@@ -1,0 +1,18 @@
+# =============================================================================
+# Stage 3.0.1.4 OSS 挂载测试 PVC
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-oss-mount-test
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 200Gi
+  volumeName: pv-oss-mount-test
+  selector:
+    matchLabels:
+      app: oss-mount-test

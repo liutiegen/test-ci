@@ -1,0 +1,19 @@
+# =============================================================================
+# Stage 1.1 PVC：绑定 pv-stage-1-1，供各量化 Job 以 /data 挂载 OSS bucket
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-stage-1-1
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 200Gi
+  volumeName: pv-stage-1-1
+  selector:
+    matchLabels:
+      app: quantflow
+      stage: stage-1-1

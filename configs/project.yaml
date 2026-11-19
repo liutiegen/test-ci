@@ -1,0 +1,113 @@
+# =============================================================================
+# 企业级 LLM 量化项目 —— 集中式配置
+# 信息来源：environment.yaml / resources.yaml / stages_config.yaml
+# 所有脚本与 K8s 文件均以本文件为唯一事实来源（single source of truth）。
+# =============================================================================
+
+project:
+  name: quantflow
+  model_name: Qwen2.5-0.5B-Instruct
+  # 量化目标：在指定 benchmark 上稳住表现，并在压缩率/性能之间选最优
+  objective: hold_accuracy_while_compressing
+
+# -----------------------------------------------------------------------------
+# 环境（environment.yaml）
+# -----------------------------------------------------------------------------
+environment:
+  local:
+    os: Windows11_x86
+    necessary_cli_tools:
+      - git
+      - uv
+  remote:
+    platform: aliyun
+    region: cn-shanghai
+
+# -----------------------------------------------------------------------------
+# 镜像源（下载网络资源时使用；use_mirror=false 时不启用）
+# -----------------------------------------------------------------------------
+mirrors:
+  enabled: false
+  pip_index: https://pypi.tuna.tsinghua.edu.cn/simple/
+  apt: http://mirrors.aliyun.com
+  uv_installer_github_base_url: https://ghproxy.cn/https://github
+
+# -----------------------------------------------------------------------------
+# 本地路径（agent 编写代码 / 本地资源）
+# -----------------------------------------------------------------------------
+local_paths:
+  code_repository_root: C:\Users\11029\Desktop\compress
+  code_repositories:
+    vllm: C:\Users\11029\Desktop\compress\vllm
+    llm_compressor: C:\Users\11029\Desktop\compress\llm-compressor
+    lm_evaluation_harness: C:\Users\11029\Desktop\compress\lm-evaluation-harness
+    transformers: C:\Users\11029\Desktop\compress\transformers
+    trl: C:\Users\11029\Desktop\compress\trl
+  model: C:\Users\11029\Desktop\Qwen2.5-0.5B-Instruct
+  dataset: C:\Users\11029\Desktop\ultrachat_200k
+  # stage1 产物存放路径（stages_config.output.storage_path）
+  output: C:\Users\11029\Desktop\test_compress_project
+
+# -----------------------------------------------------------------------------
+# 远程 OSS 存储
+# -----------------------------------------------------------------------------
+oss:
+  bucket: test-llm-compressor
+  region: cn-shanghai
+  endpoint_internal: https://oss-cn-shanghai-internal.aliyuncs.com
+  prefixes:
+    model: oss://test-llm-compressor/Qwen2.5-0.5B-Instruct/
+    dataset: oss://test-llm-compressor/ultrachat_200k/
+    output: oss://test-llm-compressor/output/
+  # Pod 内挂载点（CSI 挂载 bucket 根目录到 /data）
+  mount_root: /data
+  in_pod:
+    model: /data/Qwen2.5-0.5B-Instruct
+    dataset: /data/ultrachat_200k
+    output: /data/output
+
+# -----------------------------------------------------------------------------
+# 镜像仓库（resources.remote_image_repository）
+# target 仓库名预先给定，tag 按阶段动态生成；K8s 中 image 必须与此处一致。
+# -----------------------------------------------------------------------------
+images:
+  test:
+    repo: crpi-kqhgoddj8ldwo4ba.cn-shanghai.personal.cr.aliyuncs.com/test_random/test_ray
+    tag: v1
+    full: crpi-kqhgoddj8ldwo4ba.cn-shanghai.personal.cr.aliyuncs.com/test_random/test_ray:v1
+  target_registry: test-acr-business-registry.cn-shanghai.cr.aliyuncs.com/test-llm-compressor/test
+  # 各阶段目标镜像（tag 命名规范：stage-<阶段>-v<版本>，发版时仅递增版本）
+  targets:
+    stage_1_1: test-acr-business-registry.cn-shanghai.cr.aliyuncs.com/test-llm-compressor/test:stage-1-1-v1
+    stage_1_2: test-acr-business-registry.cn-shanghai.cr.aliyuncs.com/test-llm-compressor/test:stage-1-2-v1
+    stage_1_3: test-acr-business-registry.cn-shanghai.cr.aliyuncs.com/test-llm-compressor/test:stage-1-3-v1
+
+# -----------------------------------------------------------------------------
+# 版本控制（stages_config.stage1.use_version_control）
+# -----------------------------------------------------------------------------
+version_control:
+  enabled: true
+  default_branch: main
+
+# -----------------------------------------------------------------------------
+# 数据集合用途映射
+# -----------------------------------------------------------------------------
+datasets:
+  calibration:
+    name: ultrachat_200k
+    split: train_sft
+  validation:
+    name: ultrachat_200k
+    split: test_sft
+  training:
+    name: ultrachat_200k
+    split: train_sft
+
+# -----------------------------------------------------------------------------
+# 量化参数默认值
+# -----------------------------------------------------------------------------
+quantization_defaults:
+  num_calibration_samples: 512
+  max_seq_length: 2048
+  smoothquant_strength: 0.8
+  awq_duo_scaling: both

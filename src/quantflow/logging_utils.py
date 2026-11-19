@@ -1,0 +1,30 @@
+"""统一日志：在标准 logging 基础上增加阶段/run_id 上下文。"""
+
+from __future__ import annotations
+
+import logging
+import sys
+
+_CONFIGURED = False
+
+
+def configure_root_logger(level: int | str = logging.INFO) -> None:
+    global _CONFIGURED
+    if _CONFIGURED:
+        return
+    handler = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter(
+        fmt="%(asctime)s | %(levelname)-7s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    handler.setFormatter(formatter)
+    root = logging.getLogger()
+    root.handlers.clear()
+    root.addHandler(handler)
+    root.setLevel(level)
+    _CONFIGURED = True
+
+
+def get_logger(name: str) -> logging.Logger:
+    configure_root_logger()
+    return logging.getLogger(name)

@@ -1,0 +1,81 @@
+# =============================================================================
+# 实验矩阵：量化算法 × 量化方案 × 量化位置
+# stages_config.stage1.stage1_1.compress 的 algorithm_options / scheme_options / targets
+# 在此显式展开。每个组合对应一个独立 run_id，与输出目录、K8s Job、指标文件一一对应。
+# =============================================================================
+
+# 三个维度的可选项 ------------------------------------------------------------
+axes:
+  algorithm_options:
+    - smoothquant   # SmoothQuantModifier + GPTQModifier（激活平滑，适合 W8A8）
+    - awq           # AWQModifier + QuantizationModifier（保护显著通道，适合 W4A16）
+
+  scheme_options:
+    # 与算法的合法搭配（见 recipes.py 的兼容性校验）
+    smoothquant:
+      - W8A8         # INT8 权重逐通道 + 激活动态逐 token
+    awq:
+      - W4A16        # INT4 对称，group_size=128，仅权重
+      - W4A16_ASYM   # INT4 非对称，group_size=128，仅权重
+
+  # 量化位置（targets）
+  target_options:
+    - all           # 全部 Linear（忽略 lm_head）
+    - attention     # 仅 self_attn 的 q/k/v/o_proj
+    - mlp           # 仅 mlp 的 gate/up/down_proj
+
+# 命名规范 --------------------------------------------------------------------
+# run_id = <algorithm>__<scheme 小写>__<position>
+# 输出目录 = <output>/models/<run_id>；指标文件 = <output>/metrics/<run_id>.json
+naming:
+  scheme_tokens:
+    W8A8: w8a8
+    W4A16: w4a16
+    W4A16_ASYM: w4a16_asym
+  run_id_pattern: "{algorithm}__{scheme_token}__{position}"
+
+# 完整组合（笛卡尔积中仅保留算法-方案合法的搭配，共 9 个）----------------------
+runs:
+  - run_id: smoothquant__w8a8__all
+    algorithm: smoothquant
+    scheme: W8A8
+    position: all
+  - run_id: smoothquant__w8a8__attention
+    algorithm: smoothquant
+    scheme: W8A8
+    position: attention
+  - run_id: smoothquant__w8a8__mlp
+    algorithm: smoothquant
+    scheme: W8A8
+    position: mlp
+
+  - run_id: awq__w4a16__all
+    algorithm: awq
+    scheme: W4A16
+    position: all
+  - run_id: awq__w4a16__attention
+    algorithm: awq
+    scheme: W4A16
+    position: attention
+  - run_id: awq__w4a16__mlp
+    algorithm: awq
+    scheme: W4A16
+    position: mlp
+
+  - run_id: awq__w4a16_asym__all
+    algorithm: awq
+    scheme: W4A16_ASYM
+    position: all
+  - run_id: awq__w4a16_asym__attention
+    algorithm: awq
+    scheme: W4A16_ASYM
+    position: attention
+  - run_id: awq__w4a16_asym__mlp
+    algorithm: awq
+    scheme: W4A16_ASYM
+    position: mlp
+
+# Baseline（不量化，作为对照，同样跑 benchmark 与困惑度）
+baseline:
+  run_id: baseline__fp16
+  note: 原始 bfloat16 模型，不做任何量化

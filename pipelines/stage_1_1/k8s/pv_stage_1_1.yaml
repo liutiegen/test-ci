@@ -1,0 +1,30 @@
+# =============================================================================
+# Stage 1.1 PV：通过阿里云 OSS CSI 挂载 bucket 根目录（RRSA 鉴权）
+# 应用：kubectl apply -f pv_stage_1_1.yaml
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-stage-1-1
+  labels:
+    app: quantflow
+    stage: stage-1-1
+spec:
+  capacity:
+    storage: 200Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: ossplugin.csi.alibabacloud.com
+    volumeHandle: oss-csi-stage-1-1
+    volumeAttributes:
+      fuseType: ossfs2
+      bucket: test-llm-compressor
+      region: cn-shanghai
+      path: /
+      url: "https://oss-cn-shanghai-internal.aliyuncs.com"
+      otherOpts: "-o close_to_open=false"
+      authType: "rrsa"
+      roleName: "rrsa"
+      sigVersion: "v4"

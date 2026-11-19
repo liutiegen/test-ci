@@ -1,0 +1,19 @@
+# =============================================================================
+# Stage 1.2 PVC：绑定 pv-stage-1-2
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-stage-1-2
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 200Gi
+  volumeName: pv-stage-1-2
+  selector:
+    matchLabels:
+      app: quantflow
+      stage: stage-1-2

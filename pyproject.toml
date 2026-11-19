@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantflow"
+version = "1.0.0"
+description = "企业级 LLM 量化流水线：PTQ 量化、QAT 微调与 vLLM 服务基准"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "QuantFlow" }]
+
+# 核心依赖（镜像内由各 Dockerfile 显式安装，构建本包时以 --no-deps 跳过解析）
+dependencies = [
+    "numpy>=1.24",
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+    "datasets>=2.20",
+    "transformers>=4.45",
+    "accelerate>=0.34",
+    "llmcompressor>=0.4",
+]
+
+[project.optional-dependencies]
+# 评估、QAT 微调、vLLM 服务按阶段启用，避免在量化镜像中拉入重依赖
+eval = ["lm-eval==0.4.14"]
+qat = ["trl>=1.0"]
+serving = ["vllm>=0.10"]
+all = ["lm-eval==0.4.14", "trl>=1.0", "vllm>=0.10"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"

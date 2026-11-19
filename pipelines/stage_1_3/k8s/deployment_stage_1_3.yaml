@@ -1,0 +1,136 @@
+# =============================================================================
+# Stage 1.3 编排：baseline / compressed / finetuned 三个 Job 并行，跨节点反亲和
+# 应用：kubectl apply -f deployment_stage_1_3.yaml
+# 每个 Pod 通过 MODEL_ROLE 区分，容器内脚本读取 best_selection.json 解析路径。
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: benchmark-params
+data:
+  NUM_PROMPTS: "200"
+  INPUT_LEN: "512"
+  OUTPUT_LEN: "128"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vllm-bench-baseline
+  labels: {app: quantflow, stage: stage-1-3, model-role: baseline}
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: {app: quantflow, stage: stage-1-3}
+    spec:
+      serviceAccountName: quantflow-rrsa
+      restartPolicy: Never
+      containers:
+        - name: bench
+          image: test-acr-business-registry.cn-shanghai.cr.aliyuncs.com/test-llm-compressor/test:stage-1-3-v1
+          env:
+            - name: MODEL_ROLE
+              value: baseline
+            - name: NUM_PROMPTS
+              valueFrom: {configMapKeyRef: {name: benchmark-params, key: NUM_PROMPTS}}
+            - name: INPUT_LEN
+              valueFrom: {configMapKeyRef: {name: benchmark-params, key: INPUT_LEN}}
+            - name: OUTPUT_LEN
+              valueFrom: {configMapKeyRef: {name: benchmark-params, key: OUTPUT_LEN}}
+          volumeMounts:
+            - {name: oss-data, mountPath: /data}
+          resources:
+            requests: {nvidia.com/gpu: "1", cpu: "8", memory: 24Gi}
+            limits: {nvidia.com/gpu: "1", cpu: "16", memory: 32Gi}
+      volumes:
+        - name: oss-data
+          persistentVolumeClaim: {claimName: pvc-stage-1-3}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels: {app: quantflow, stage: stage-1-3}
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vllm-bench-compressed
+  labels: {app: quantflow, stage: stage-1-3, model-role: compressed}
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: {app: quantflow, stage: stage-1-3}
+    spec:
+      serviceAccountName: quantflow-rrsa
+      restartPolicy: Never
+      containers:
+        - name: bench
+          image: test-acr-business-registry.cn-shanghai.cr.aliyuncs.com/test-llm-compressor/test:stage-1-3-v1
+          env:
+            - name: MODEL_ROLE
+              value: compressed
+            - name: NUM_PROMPTS
+              valueFrom: {configMapKeyRef: {name: benchmark-params, key: NUM_PROMPTS}}
+            - name: INPUT_LEN
+              valueFrom: {configMapKeyRef: {name: benchmark-params, key: INPUT_LEN}}
+            - name: OUTPUT_LEN
+              valueFrom: {configMapKeyRef: {name: benchmark-params, key: OUTPUT_LEN}}
+          volumeMounts:
+            - {name: oss-data, mountPath: /data}
+          resources:
+            requests: {nvidia.com/gpu: "1", cpu: "8", memory: 24Gi}
+            limits: {nvidia.com/gpu: "1", cpu: "16", memory: 32Gi}
+      volumes:
+        - name: oss-data
+          persistentVolumeClaim: {claimName: pvc-stage-1-3}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels: {app: quantflow, stage: stage-1-3}
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vllm-bench-finetuned
+  labels: {app: quantflow, stage: stage-1-3, model-role: finetuned}
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: {app: quantflow, stage: stage-1-3}
+    spec:
+      serviceAccountName: quantflow-rrsa
+      restartPolicy: Never
+      containers:
+        - name: bench
+          image: test-acr-business-registry.cn-shanghai.cr.aliyuncs.com/test-llm-compressor/test:stage-1-3-v1
+          env:
+            - name: MODEL_ROLE
+              value: finetuned
+            - name: NUM_PROMPTS
+              valueFrom: {configMapKeyRef: {name: benchmark-params, key: NUM_PROMPTS}}
+            - name: INPUT_LEN
+              valueFrom: {configMapKeyRef: {name: benchmark-params, key: INPUT_LEN}}
+            - name: OUTPUT_LEN
+              valueFrom: {configMapKeyRef: {name: benchmark-params, key: OUTPUT_LEN}}
+          volumeMounts:
+            - {name: oss-data, mountPath: /data}
+          resources:
+            requests: {nvidia.com/gpu: "1", cpu: "8", memory: 24Gi}
+            limits: {nvidia.com/gpu: "1", cpu: "16", memory: 32Gi}
+      volumes:
+        - name: oss-data
+          persistentVolumeClaim: {claimName: pvc-stage-1-3}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels: {app: quantflow, stage: stage-1-3}
+              topologyKey: kubernetes.io/hostname
